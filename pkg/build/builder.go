@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/merlinz01/installer1/pkg/output"
+	"github.com/ulikunitz/xz/lzma"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
 )
@@ -109,7 +110,7 @@ func (b *builder) build() error {
 func (b *builder) prepare() error {
 	output.Debug("Validating build params")
 	switch b.params.Compression {
-	case "gzip", "none":
+	case "gzip", "lzma", "none":
 	default:
 		return fmt.Errorf("unsupported compression method: %s", b.params.Compression)
 	}
@@ -406,6 +407,20 @@ func (b *builder) addFile(sourcePath string) error {
 	defer out.Close()
 	var reader io.Reader = f
 	switch b.params.Compression {
+	case "lzma":
+		lw, err := lzma.NewWriter(out)
+		if err != nil {
+			return fmt.Errorf("failed to create lzma writer: %w", err)
+		}
+		defer lw.Close()
+		_, err = io.CopyBuffer(lw, reader, buf)
+		if err != nil {
+			return fmt.Errorf("failed to copy file to storage: %w", err)
+		}
+		err = lw.Close()
+		if err != nil {
+			return fmt.Errorf("failed to finalize lzma compression: %w", err)
+		}
 	case "gzip":
 		gw := gzip.NewWriter(out)
 		defer gw.Close()

@@ -36,6 +36,8 @@ type builder struct {
 	installerDir string
 	// Directory where uninstaller source files are generated
 	uninstallerDir string
+	// Relative path to uninstaller binary
+	uninstallerPath string
 	// Directory where gathered files are stored
 	filesDir string
 	// Map of original source path to fileInfo
@@ -76,6 +78,10 @@ func (b *builder) build() error {
 	if err != nil {
 		return err
 	}
+	err = b.compileUninstaller()
+	if err != nil {
+		return err
+	}
 	err = b.gatherFiles()
 	if err != nil {
 		return err
@@ -93,10 +99,6 @@ func (b *builder) build() error {
 		return err
 	}
 	err = b.writeUninstallerSources()
-	if err != nil {
-		return err
-	}
-	err = b.compileUninstaller()
 	if err != nil {
 		return err
 	}
@@ -338,6 +340,12 @@ func (b *builder) gatherFiles() error {
 			return fmt.Errorf("failed to add included directory %s: %w", dirPath, err)
 		}
 	}
+	uninstallerPath, err := filepath.Rel(b.params.TargetDir, path.Join(b.uninstallerDir, "uninstaller"))
+	if err != nil {
+		return fmt.Errorf("failed to get uninstaller path: %w", err)
+	}
+	b.addFile(uninstallerPath)
+	b.uninstallerPath = uninstallerPath
 	output.Info("Total files gathered: %d", len(b.filesMap))
 	return nil
 }
@@ -546,7 +554,7 @@ func (b *builder) writeIndexFile() error {
 		Size               int64  `json:"size"`
 		ContentHash        string `json:"content_hash"`
 	}
-	index := make([]indexEntry, 0, len(b.filesMap))
+	entries := make([]indexEntry, 0, len(b.filesMap))
 	for _, info := range b.filesMap {
 		relStoragePath := ""
 		if !info.isDir {
@@ -555,7 +563,7 @@ func (b *builder) writeIndexFile() error {
 				return fmt.Errorf("failed to get relative path for file %s: %w", info.storagePath, err)
 			}
 		}
-		index = append(index, indexEntry{
+		entries = append(entries, indexEntry{
 			OriginalSourcePath: info.originalSourcePath,
 			StoragePath:        relStoragePath,
 			Compression:        info.compression,
@@ -563,6 +571,13 @@ func (b *builder) writeIndexFile() error {
 			Size:               info.size,
 			ContentHash:        info.contentHash,
 		})
+	}
+	index := struct {
+		Files           []indexEntry `json:"files"`
+		UninstallerPath string       `json:"uninstaller_path"`
+	}{
+		Files:           entries,
+		UninstallerPath: b.uninstallerPath,
 	}
 	encoder := json.NewEncoder(f)
 	err = encoder.Encode(index)
@@ -703,7 +718,7 @@ func main() {
 
 func (b *builder) compileUninstaller() error {
 	output.Debug("Compiling uninstaller binary")
-	outputPath := path.Join(b.filesDir, "uninstaller")
+	outputPath := path.Join(b.uninstallerDir, "uninstaller")
 	cmd := []string{"go", "build", "-o", outputPath, "-ldflags", "-s -w", b.uninstallerDir}
 	output.Debug("Running command: %s", strings.Join(cmd, " "))
 	env := []string{}

@@ -17,10 +17,12 @@ import (
 )
 
 type Installer struct {
-	embeddedFiles []byte
-	filesMap      map[string]fileInfo
-	inDir         string
-	outDir        string
+	embeddedFiles          []byte
+	filesMap               map[string]fileInfo
+	inDir                  string
+	outDir                 string
+	uninstallerPath        string
+	uninstallerCompression string
 }
 
 func NewInstaller(embedFs *embed.FS) *Installer {
@@ -34,9 +36,6 @@ func NewInstaller(embedFs *embed.FS) *Installer {
 }
 
 func (i *Installer) updateEmbeddedFiles(embedFs *embed.FS) {
-	if embedFs == nil {
-		return
-	}
 	indexJson, err := embedFs.ReadFile("files/index.json")
 	if err != nil {
 		log.Printf("Failed to read embedded index.json: %v", err)
@@ -50,13 +49,16 @@ func (i *Installer) updateEmbeddedFiles(embedFs *embed.FS) {
 		Size        int    `json:"size"`
 		ContentHash string `json:"content_hash"`
 	}
-	var index []indexEntry
+	var index struct {
+		Entries         []indexEntry `json:"entries"`
+		UninstallerPath string       `json:"uninstaller_path"`
+	}
 	err = json.Unmarshal(indexJson, &index)
 	if err != nil {
 		log.Printf("Failed to parse embedded index.json: %v", err)
 		return
 	}
-	for _, entry := range index {
+	for _, entry := range index.Entries {
 		if entry.IsDir {
 			i.filesMap[entry.SourcePath] = fileInfo{
 				sourcePath:  entry.SourcePath,
@@ -78,11 +80,7 @@ func (i *Installer) updateEmbeddedFiles(embedFs *embed.FS) {
 			compression: entry.Compression,
 		}
 	}
-}
-
-func (i *Installer) addEmbeddedFile(_ embed.FS, _ string) error {
-	// todo
-	return nil
+	i.uninstallerPath = index.UninstallerPath
 }
 
 type fileInfo struct {
@@ -274,7 +272,7 @@ func (i *Installer) Uninstaller(destPath string) {
 	if err != nil {
 		panicWithErr(err)
 	}
-	file, ok := i.filesMap["uninstaller"]
+	file, ok := i.filesMap[i.uninstallerPath]
 	if !ok {
 		panicWithErr(errors.New("uninstaller not included in installer"))
 	}

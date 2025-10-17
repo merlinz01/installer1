@@ -612,8 +612,8 @@ func main() {
 func (b *builder) compileInstaller() error {
 	output.Debug("Compiling installer binary")
 	outputPath := b.params.OutputFile
-	args := []string{"build", "-o", outputPath, b.installerDir}
-	output.Debug("Running command: go %s", strings.Join(args, " "))
+	cmd := []string{"go", "build", "-o", outputPath, "-ldflags", "-s -w", b.installerDir}
+	output.Debug("Running command: %s", strings.Join(cmd, " "))
 	env := []string{}
 	if b.params.OS != "" {
 		env = append(env, "GOOS="+b.params.OS)
@@ -623,7 +623,7 @@ func (b *builder) compileInstaller() error {
 		env = append(env, "GOARCH="+b.params.Arch)
 		output.Debug("Setting GOARCH=%s", b.params.Arch)
 	}
-	err := runCommand("go", args, env)
+	err := runCommand(cmd, env)
 	if err != nil {
 		return fmt.Errorf("failed to compile installer: %w", err)
 	}
@@ -631,8 +631,8 @@ func (b *builder) compileInstaller() error {
 	return nil
 }
 
-func runCommand(cmd string, args []string, env []string) error {
-	c := exec.Command(cmd, args...)
+func runCommand(cmd []string, env []string) error {
+	c := exec.Command(cmd[0], cmd[1:]...)
 	c.Env = append(os.Environ(), env...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
@@ -689,8 +689,8 @@ func main() {
 func (b *builder) compileUninstaller() error {
 	output.Debug("Compiling uninstaller binary")
 	outputPath := path.Join(b.filesDir, "uninstaller")
-	args := []string{"build", "-o", outputPath, b.uninstallerDir}
-	output.Debug("Running command: go %s", strings.Join(args, " "))
+	cmd := []string{"go", "build", "-o", outputPath, "-ldflags", "-s -w", b.uninstallerDir}
+	output.Debug("Running command: %s", strings.Join(cmd, " "))
 	env := []string{}
 	if b.params.OS != "" {
 		env = append(env, "GOOS="+b.params.OS)
@@ -700,7 +700,7 @@ func (b *builder) compileUninstaller() error {
 		env = append(env, "GOARCH="+b.params.Arch)
 		output.Debug("Setting GOARCH=%s", b.params.Arch)
 	}
-	err := runCommand("go", args, env)
+	err := runCommand(cmd, env)
 	if err != nil {
 		return fmt.Errorf("failed to compile uninstaller: %w", err)
 	}

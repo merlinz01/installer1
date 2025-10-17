@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dsnet/compress/bzip2"
 	"github.com/merlinz01/installer1/pkg/output"
 	"github.com/ulikunitz/xz/lzma"
 	"golang.org/x/tools/go/analysis"
@@ -112,7 +113,7 @@ func (b *builder) build() error {
 func (b *builder) prepare() error {
 	output.Debug("Validating build params")
 	switch b.params.Compression {
-	case "gzip", "lzma", "none":
+	case "lzma", "bzip2", "gzip", "none":
 	default:
 		return fmt.Errorf("unsupported compression method: %s", b.params.Compression)
 	}
@@ -428,6 +429,20 @@ func (b *builder) addFile(sourcePath string) error {
 		err = lw.Close()
 		if err != nil {
 			return fmt.Errorf("failed to finalize lzma compression: %w", err)
+		}
+	case "bzip2":
+		bw, err := bzip2.NewWriter(out, &bzip2.WriterConfig{Level: bzip2.BestCompression})
+		if err != nil {
+			return fmt.Errorf("failed to create bzip2 writer: %w", err)
+		}
+		defer bw.Close()
+		_, err = io.CopyBuffer(bw, reader, buf)
+		if err != nil {
+			return fmt.Errorf("failed to copy file to storage: %w", err)
+		}
+		err = bw.Close()
+		if err != nil {
+			return fmt.Errorf("failed to finalize bzip2 compression: %w", err)
 		}
 	case "gzip":
 		gw := gzip.NewWriter(out)

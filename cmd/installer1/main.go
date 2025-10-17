@@ -35,7 +35,7 @@ func run() error {
 	var ignorePatterns string
 	flag.StringVar(&ignorePatterns, "ignore", ".git,.svn,node_modules", "Comma-separated list of glob patterns to ignore when including directories")
 	var compression string
-	flag.StringVar(&compression, "compression", "lzma", "Compression method to use for files (options: lzma, gzip, none)")
+	flag.StringVar(&compression, "compression", "lzma", "Compression method to use for files (options: lzma, bzip2, gzip, none)")
 	var out string
 	flag.StringVar(&out, "output", "./installer", "Output installer file name")
 	var osName string

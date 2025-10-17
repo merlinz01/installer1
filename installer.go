@@ -2,6 +2,7 @@ package installer1
 
 import (
 	"bytes"
+	"compress/bzip2"
 	"compress/gzip"
 	"embed"
 	"encoding/json"
@@ -14,6 +15,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/ulikunitz/xz/lzma"
 )
 
 type Installer struct {
@@ -94,6 +97,23 @@ func (f *fileInfo) decompress() error {
 	switch f.compression {
 	case "":
 		return nil
+	case "lzma":
+		r, err := lzma.NewReader(bytes.NewReader(f.content))
+		if err != nil {
+			return err
+		}
+		decompressed, err := io.ReadAll(r)
+		if err != nil {
+			return err
+		}
+		f.content = decompressed
+	case "bzip2":
+		r := bzip2.NewReader(bytes.NewReader(f.content))
+		decompressed, err := io.ReadAll(r)
+		if err != nil {
+			return err
+		}
+		f.content = decompressed
 	case "gzip":
 		r, err := gzip.NewReader(bytes.NewReader(f.content))
 		if err != nil {

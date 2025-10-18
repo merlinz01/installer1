@@ -53,7 +53,7 @@ func (i *Installer) updateEmbeddedFiles(embedFs *embed.FS) {
 		ContentHash string `json:"content_hash"`
 	}
 	var index struct {
-		Entries         []indexEntry `json:"entries"`
+		Files           []indexEntry `json:"files"`
 		UninstallerPath string       `json:"uninstaller_path"`
 	}
 	err = json.Unmarshal(indexJson, &index)
@@ -61,26 +61,27 @@ func (i *Installer) updateEmbeddedFiles(embedFs *embed.FS) {
 		log.Printf("Failed to parse embedded index.json: %v", err)
 		return
 	}
-	for _, entry := range index.Entries {
-		if entry.IsDir {
-			i.filesMap[entry.SourcePath] = fileInfo{
-				sourcePath:  entry.SourcePath,
+	for _, file := range index.Files {
+		if file.IsDir {
+			i.filesMap[file.SourcePath] = fileInfo{
+				sourcePath:  file.SourcePath,
 				isDir:       true,
 				content:     nil,
 				compression: "",
 			}
+			log.Printf("Added directory to filesMap: %s", file.SourcePath)
 			continue
 		}
-		content, err := embedFs.ReadFile("files/" + entry.StoragePath)
+		content, err := embedFs.ReadFile("files/" + file.StoragePath)
 		if err != nil {
-			log.Printf("Failed to read embedded file %s: %v", entry.StoragePath, err)
+			log.Printf("Failed to read embedded file %s: %v", file.StoragePath, err)
 			continue
 		}
-		i.filesMap[entry.SourcePath] = fileInfo{
-			sourcePath:  entry.SourcePath,
+		i.filesMap[file.SourcePath] = fileInfo{
+			sourcePath:  file.SourcePath,
 			isDir:       false,
 			content:     content,
-			compression: entry.Compression,
+			compression: file.Compression,
 		}
 	}
 	i.uninstallerPath = index.UninstallerPath
@@ -250,7 +251,7 @@ func isSubpath(path, base string) bool {
 }
 
 func (i *Installer) getOutPath(destPath string) (string, error) {
-	if i.outDir == "" {
+	if i.outDir == "" && !filepath.IsAbs(destPath) {
 		return "", errors.New("output directory not set")
 	}
 	destPath = filepath.Clean(destPath)

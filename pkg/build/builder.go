@@ -615,6 +615,7 @@ package main
 import (
 	"github.com/merlinz01/installer1"
 	"embed"
+	src "` + b.pkg.Types.Path() + `"
 )
 
 //go:embed files
@@ -622,7 +623,7 @@ var _installer_embedded_files embed.FS
 
 func main() {
 	i := installer1.NewInstaller(&_installer_embedded_files)
-	i.InstallMain(Install)
+	i.InstallMain(src.Install)
 }
 `)
 	mainPath := path.Join(b.installerDir, "main.go")
@@ -631,26 +632,6 @@ func main() {
 		return fmt.Errorf("failed to write installer main file: %w", err)
 	}
 	output.Debug("Installer main file written: %s", mainPath)
-	sourceFilePath := ""
-	for _, f := range b.pkg.GoFiles {
-		if strings.HasSuffix(f, ".go") {
-			sourceFilePath = f
-			break
-		}
-	}
-	if sourceFilePath == "" {
-		return errors.New("failed to find source .go file")
-	}
-	sourceContent, err := os.ReadFile(sourceFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to read source file: %w", err)
-	}
-	destSourcePath := path.Join(b.installerDir, path.Base(sourceFilePath))
-	err = os.WriteFile(destSourcePath, sourceContent, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write source file to installer dir: %w", err)
-	}
-	output.Debug("Source file copied to installer dir: %s", destSourcePath)
 	return nil
 }
 
@@ -695,11 +676,12 @@ package main
 
 import (
 	"github.com/merlinz01/installer1"
+	src "` + b.pkg.Types.Path() + `"
 )
 
 func main() {
 	u := installer1.NewInstaller(nil)
-	u.UninstallMain(Uninstall)
+	u.UninstallMain(src.Uninstall)
 }
 `)
 	mainPath := path.Join(b.uninstallerDir, "main.go")
@@ -708,26 +690,6 @@ func main() {
 		return fmt.Errorf("failed to write uninstaller main file: %w", err)
 	}
 	output.Debug("Uninstaller main file written: %s", mainPath)
-	sourceFilePath := ""
-	for _, f := range b.pkg.GoFiles {
-		if strings.HasSuffix(f, ".go") {
-			sourceFilePath = f
-			break
-		}
-	}
-	if sourceFilePath == "" {
-		return errors.New("failed to find source .go file")
-	}
-	sourceContent, err := os.ReadFile(sourceFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to read source file: %w", err)
-	}
-	destSourcePath := path.Join(b.uninstallerDir, path.Base(sourceFilePath))
-	err = os.WriteFile(destSourcePath, sourceContent, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write source file to uninstaller dir: %w", err)
-	}
-	output.Debug("Source file copied to uninstaller dir: %s", destSourcePath)
 	return nil
 }
 

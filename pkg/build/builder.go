@@ -67,7 +67,7 @@ func (b *builder) build() error {
 	if err != nil {
 		return err
 	}
-	err = b.parseSourceDir()
+	err = b.parseSources()
 	if err != nil {
 		return err
 	}
@@ -150,13 +150,20 @@ func (b *builder) prepare() error {
 	return nil
 }
 
-func (b *builder) parseSourceDir() error {
+func (b *builder) parseSources() error {
 	output.Debug("Parsing source files")
 	cfg := &packages.Config{
 		Mode:  packages.LoadTypes | packages.LoadSyntax | packages.LoadFiles,
 		Fset:  token.NewFileSet(),
 		Tests: false,
 		Dir:   b.params.TargetDir,
+		Env:   os.Environ(),
+	}
+	if b.params.OS != "" {
+		cfg.Env = append(cfg.Env, "GOOS="+b.params.OS)
+	}
+	if b.params.Arch != "" {
+		cfg.Env = append(cfg.Env, "GOARCH="+b.params.Arch)
 	}
 	pkgs, err := packages.Load(cfg, ".")
 	if err != nil {

@@ -7,18 +7,24 @@ Very early development stage - not ready for production use.
 Why? Because NSIS is a pain for anything non-trivial.
 We can do better in 2025.
 
-## Overview
+## Features
 
-Installer1 is a tool that allows you to create installation programs
-by writing simple Go code. The framework:
-
+- Write your installer logic in good old plain Go
+- Full access to Go's standard library and third-party packages
 - Scans your Go source code file to detect which files need to be included
-- Embeds those files into a self-contained executable
-- Provides a clean API for installing, uninstalling,
-  and managing files on the target system
+- Embeds those files into a self-contained executable using Go's embed feature
+- Provides a simple API for installing and removing files on the target system
 - Automatically generates both installer and uninstaller binaries
 - Supports file compression to reduce binary size
-- Works cross-platform (I guess)
+- Works cross-platform (in theory)
+
+## Unfeatures
+
+- No GUI (yet)
+- No advanced installation options (yet)
+- No control over exe icons, version info, etc. (yet)
+- Only supports operating systems that Go supports
+- Installer binaries are larger than NSIS installers due to the embedded Go runtime
 
 ## Usage
 

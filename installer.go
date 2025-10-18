@@ -363,8 +363,64 @@ func (i *Installer) run(installFunc func(*Installer) error) (err error) {
 	return installFunc(i)
 }
 
-func (i *Installer) Main(installFunc func(*Installer) error) {
+func (i *Installer) InstallMain(installFunc func(*Installer) error) {
 	err := i.run(installFunc)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func (i *Installer) UninstallMain(uninstallFunc func(*Installer) error) {
+	copyUninstaller := true
+	argv := os.Args
+	for _, arg := range argv {
+		if arg == "--nocopyuninstaller" {
+			copyUninstaller = false
+			break
+		}
+	}
+	if copyUninstaller {
+		exePath, err := os.Executable()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		tmpDir := os.TempDir()
+		tmpPath := filepath.Join(tmpDir, "uninstaller.exe")
+		inputFile, err := os.Open(exePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		defer inputFile.Close()
+		outputFile, err := os.Create(tmpPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		defer outputFile.Close()
+		_, err = io.Copy(outputFile, inputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		err = outputFile.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		cmd := exec.Command(tmpPath, "--nocopyuninstaller")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Start()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+	err := i.run(uninstallFunc)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

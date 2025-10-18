@@ -79,6 +79,10 @@ func (b *builder) build() error {
 	if err != nil {
 		return err
 	}
+	err = b.writeUninstallerSources()
+	if err != nil {
+		return err
+	}
 	err = b.compileUninstaller()
 	if err != nil {
 		return err
@@ -96,10 +100,6 @@ func (b *builder) build() error {
 		return err
 	}
 	err = b.writeInstallerSources()
-	if err != nil {
-		return err
-	}
-	err = b.writeUninstallerSources()
 	if err != nil {
 		return err
 	}
@@ -622,7 +622,7 @@ var _installer_embedded_files embed.FS
 
 func main() {
 	i := installer1.NewInstaller(&_installer_embedded_files)
-	i.Main(Install)
+	i.InstallMain(Install)
 }
 `)
 	mainPath := path.Join(b.installerDir, "main.go")
@@ -699,7 +699,7 @@ import (
 
 func main() {
 	u := installer1.NewInstaller(nil)
-	u.Main(Uninstall)
+	u.UninstallMain(Uninstall)
 }
 `)
 	mainPath := path.Join(b.uninstallerDir, "main.go")

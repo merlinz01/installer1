@@ -12,10 +12,12 @@ func Install(i *installer1.Installer) error {
 	i.SetOutDir("C:/installer1_test")
 	i.Dir("testdir", "testdir")
 	i.File("test.txt", "testfile.txt")
+	i.Uninstaller("uninstall.exe")
 	return nil
 }
 
 func Uninstall(i *installer1.Installer) error {
 	log.Println("Uninstalling...")
+	i.Remove("C:/installer1_test")
 	return nil
 }

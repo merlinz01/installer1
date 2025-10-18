@@ -45,7 +45,9 @@ func selfDestructPrepare() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		cmd := exec.Command(tmpPath, "--tempuninstaller")
+		args := os.Args[1:]
+		args = append(args, "--tempuninstaller")
+		cmd := exec.Command(tmpPath, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Start()
